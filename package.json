@@ -1,0 +1,23 @@
+{
+  "name": "process-tee",
+  "version": "0.0.1",
+  "author": "Diko Tech Slave",
+  "main": "index.js",
+  "description": "pipe functions and resolve promises",
+  "homepage": "https://github.com/diko316/process-tee#readme",
+  "bugs": {
+    "url": "https://github.com/diko316/process-tee/issues"
+  },
+  "keywords": [
+    "pipe",
+    "functions"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diko316/process-tee.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
