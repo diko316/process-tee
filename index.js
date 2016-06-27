@@ -20,9 +20,6 @@ function get(name) {
     else if (name instanceof Class) {
         return name;
     }
-    else {
-        throw new Error('invalid parameter to resolve');
-    }
 }
 
 function define(name, processor) {
