@@ -20,6 +20,7 @@ function get(name) {
     else if (name instanceof Class) {
         return name;
     }
+    return void(0);
 }
 
 function define(name, processor) {
