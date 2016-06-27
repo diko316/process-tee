@@ -4,9 +4,9 @@
   "author": "Diko Tech Slave",
   "main": "index.js",
   "description": "pipe functions and resolve promises",
-  "homepage": "https://github.com/diko316/process-tee#readme",
+  "homepage": "https://github.com/diko316/tee-back#readme",
   "bugs": {
-    "url": "https://github.com/diko316/process-tee/issues"
+    "url": "https://github.com/diko316/tee-back/issues"
   },
   "keywords": [
     "pipe",
@@ -15,7 +15,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/diko316/process-tee.git"
+    "url": "git+https://github.com/diko316/tee-back.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
