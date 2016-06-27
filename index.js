@@ -31,6 +31,10 @@ function define(name, processor) {
     
 }
 
+function is(process) {
+    return process instanceof Process;
+}
+
 function extendInstance(instance) {
     var SuperClass = instance.constructor;
     var Prototype;
@@ -93,5 +97,6 @@ Process.prototype = {
 };
 
 EXPORTS.define = define;
+EXPORTS.is = is;
 
 module.exports = EXPORTS;
