@@ -9,8 +9,20 @@ function empty() {
 }
 
 function get(name) {
-    var list = PROCESSORS;
-    return list.hasOwnProperty(name) ? list[name] : void(0);
+    var list = PROCESSORS,
+        Class = Process;
+    if (name && typeof name === 'string') {
+        return list.hasOwnProperty(name) ? list[name] : void(0);
+    }
+    else if (name instanceof Function) {
+        return new Class(name);
+    }
+    else if (name instanceof Class) {
+        return name;
+    }
+    else {
+        throw new Error('invalid parameter to resolve');
+    }
 }
 
 function define(name, processor) {
@@ -68,6 +80,10 @@ Process.prototype = {
         
         var next = extendInstance(this),
             current = this.$runner;
+            
+        if (processor && typeof processor === 'string') {
+            processor = get(processor);
+        }
         
         if (processor instanceof Function) {
             processor = PROMISE.method(processor);
