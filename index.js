@@ -4,6 +4,12 @@ var PROMISE = require('bluebird'),
     EXPORTS = get,
     PROCESSORS = {};
 
+
+function defaultRunner() {
+    return PROMISE.reject(
+                'Base processor should be extended with new process method');
+}
+
 function empty() {
     
 }
@@ -12,10 +18,11 @@ function get(name) {
     var list = PROCESSORS,
         Class = Process;
     if (name && typeof name === 'string') {
-        return list.hasOwnProperty(name) ? list[name] : void(0);
+        return Object.prototype.hasOwnProperty.call(list, name) ?
+                        list[name] : void(0);
     }
     else if (name instanceof Function) {
-        return new Class(name);
+        return new (extend(Class, name, true))();
     }
     else if (name instanceof Class) {
         return name;
@@ -24,15 +31,26 @@ function get(name) {
 }
 
 function define(name, processor) {
-    var Class = Process;
+    var Class = Process,
+        properties = null;
+    
     if (!name || typeof name !== 'string') {
         throw new Error("[name] parameter must be string");
     }
+    
+    if (!(processor instanceof Class) &&
+        Object.prototype.toString.call(processor) === '[object Object]') {
+        properties = processor;
+        processor = properties.process;
+        delete properties.process;
+    }
+    
     if (processor instanceof Function) {
-        processor = new Class(processor);
+        processor = new (extend(Class, processor, true))();
     }
     if (processor instanceof Class) {
-        PROCESSORS[name] = processor;
+        PROCESSORS[name] = properties ?
+                                processor.extend(properties) : processor;
     }
     else {
         throw new Error("[name] parameter must be string");
@@ -45,68 +63,111 @@ function is(process) {
     return process instanceof Process;
 }
 
-function extendInstance(instance) {
-    var SuperClass = instance.constructor;
+function extendInstance(instance, runner, raw) {
+    return new (extend(instance.constructor, runner, raw))();
+}
+
+function extend(SuperClass, runner, raw) {
+    var E = empty;
     var Prototype;
     
     function Process() {
         SuperClass.apply(this, arguments);
     }
     
-    empty.prototype = instance;
-    Process.prototype = Prototype = new empty();
+    E.prototype = SuperClass.prototype;
+    Process.prototype = Prototype = new E();
     Prototype.constructor = Process;
-    empty.prototype = Prototype;
-    return new empty();
+    if (runner instanceof Function) {
+        if (raw === true) {
+            runner = PROMISE.method(runner);
+            Prototype.valueOf = function () {
+                var me = this;
+                return function () {
+                    var args = Array.prototype.slice.call(arguments, 0);
+                    args.splice(1, 0, me);
+                    return runner.apply(this, args);
+                };
+            };
+        }
+        else {
+            Prototype.valueOf = function () {
+                return runner;
+            };
+        }
+        
+    }
+    return Process;
 }
 
-
-function Process(runner) {
-    if (runner instanceof Function) {
-        this.$runner = PROMISE.method(runner);
-    }
-    else {
-        throw new Error('constructor requires Function [runner] parameter.');
-    }
+function Process() {
+    
 }
 
 Process.prototype = {
     
     constructor: Process,
     
+    name: 'base',
+    
+    valueOf: function () {
+        return defaultRunner;
+    },
+    
+    extend: function (properties) {
+        var O = Object.prototype;
+        var name, hasOwn, instance, Prototype;
+        if (properties instanceof Function) {
+            instance = extendInstance(this, properties, true);
+        }
+        else {
+            instance = extendInstance(this);
+            
+            if (O.toString.call(properties) === '[object Object]') {
+                Prototype = instance.constructor.prototype;
+                hasOwn = O.hasOwnProperty;
+                for (name in properties) {
+                    if (hasOwn.call(properties, name)) {
+                        Prototype[name] = properties[name];
+                    }
+                }
+            }
+        }
+        return instance;
+    },
+    
     pipe: function (processor) {
         
-        var next = extendInstance(this),
-            current = this.$runner;
+        var current = this.valueOf();
             
         if (processor && typeof processor === 'string') {
             processor = get(processor);
         }
         
         if (processor instanceof Function) {
-            processor = PROMISE.method(processor);
+            processor = get(processor);
             
         }
-        else if (processor instanceof Process) {
-            processor = processor.$runner;
+        
+        if (processor instanceof Process) {
+            processor = processor.valueOf();
         }
         else {
             throw new Error(
                     "piped [processor] arguments must be Function or Process");
         }
         
-        next.$runner = function () {
-            var me = this,
-                args = Array.prototype.slice.call(arguments, 0);
-                
-            return current.apply(this, arguments).
-                    then(function (data) {
-                        args[0] = data;
-                        return processor.apply(me, args);
-                    });
-        };
-        
-        return next;
+        return extendInstance(this, function () {
+                var me = this,
+                    args = Array.prototype.slice.call(arguments, 0);
+                    
+                return current.apply(me, arguments).
+                        then(function (data) {
+                            args[0] = data;
+                            return processor.apply(me, args);
+                        });
+            }, false);
+
     }
 };
 
