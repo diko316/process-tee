@@ -22,12 +22,11 @@ PROCESSOR.define(
     'augmented2',
     PROCESSOR('augmented1').
             extend({
-                name: 'buang'
-            }).
-            extend(
-            function (data, process) {
-                console.log('data', data, ' test process: ', process.name);
-                return 'augmented2';
+                name: 'buang',
+                process: function (data, process) {
+                    console.log('data', data, ' test process: ', process.name);
+                    return 'augmented2';
+                }
             }));
 
 

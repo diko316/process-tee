@@ -31,8 +31,7 @@ function get(name) {
 }
 
 function define(name, processor) {
-    var Class = Process,
-        properties = null;
+    var Class = Process;
     
     if (!name || typeof name !== 'string') {
         throw new Error("[name] parameter must be string");
@@ -40,20 +39,18 @@ function define(name, processor) {
     
     if (!(processor instanceof Class) &&
         Object.prototype.toString.call(processor) === '[object Object]') {
-        properties = processor;
-        processor = properties.process;
-        delete properties.process;
+        processor = extendDeclare(Class, processor);
     }
-    
-    if (processor instanceof Function) {
+    else if (processor instanceof Function) {
         processor = new (extend(Class, processor, true))();
     }
+    
     if (processor instanceof Class) {
-        PROCESSORS[name] = properties ?
-                                processor.extend(properties) : processor;
+        PROCESSORS[name] = processor;
     }
     else {
-        throw new Error("[name] parameter must be string");
+        throw new Error(
+            "[processor] parameter must be processor or object or Process");
     }
     return EXPORTS;
     
@@ -63,21 +60,37 @@ function is(process) {
     return process instanceof Process;
 }
 
-function extendInstance(instance, runner, raw) {
-    return new (extend(instance.constructor, runner, raw))();
-}
-
-function extend(SuperClass, runner, raw) {
+function extend(instance, runner, raw) {
     var E = empty;
-    var Prototype;
+    var Prototype, SuperClass;
     
     function Process() {
-        SuperClass.apply(this, arguments);
+        var instance = this,
+            E = empty,
+            Class = Process;
+            
+        if (instance instanceof Class) {
+            return SuperClass.apply(this, arguments);
+        }
+        else {
+            E.prototype = Class.prototype;
+            instance = new E();
+            return Class.apply(instance, arguments);
+        }
     }
     
-    E.prototype = SuperClass.prototype;
+    if (instance instanceof Function) {
+        SuperClass = instance;
+        E.prototype = SuperClass.prototype;
+    }
+    else {
+        SuperClass = instance.constructor;
+        E.prototype = instance;
+    }
+
     Process.prototype = Prototype = new E();
     Prototype.constructor = Process;
+    
     if (runner instanceof Function) {
         if (raw === true) {
             runner = PROMISE.method(runner);
@@ -100,6 +113,35 @@ function extend(SuperClass, runner, raw) {
     return Process;
 }
 
+function extendDeclare(SuperClass, processor) {
+    var properties = null,
+        O = Object.prototype,
+        toString = O.toString,
+        Base = Process;
+    var Class, Prototype, hasOwn, name;
+        
+    if (!(processor instanceof Base) &&
+        toString.call(processor) === '[object Object]') {
+        properties = processor;
+        processor = processor.process;
+    }
+    
+    Class = extend(SuperClass, processor, true);
+    
+    if (properties) {
+        if (toString.call(properties) === '[object Object]') {
+            Prototype = Class.prototype;
+            hasOwn = O.hasOwnProperty;
+            for (name in properties) {
+                if (hasOwn.call(properties, name) && name !== 'process') {
+                    Prototype[name] = properties[name];
+                }
+            }
+        }
+    }
+    return Class;
+}
+
 function Process() {
     
 }
@@ -115,25 +157,9 @@ Process.prototype = {
     },
     
     extend: function (properties) {
-        var O = Object.prototype;
-        var name, hasOwn, instance, Prototype;
-        if (properties instanceof Function) {
-            instance = extendInstance(this, properties, true);
-        }
-        else {
-            instance = extendInstance(this);
-            
-            if (O.toString.call(properties) === '[object Object]') {
-                Prototype = instance.constructor.prototype;
-                hasOwn = O.hasOwnProperty;
-                for (name in properties) {
-                    if (hasOwn.call(properties, name)) {
-                        Prototype[name] = properties[name];
-                    }
-                }
-            }
-        }
-        return instance;
+        
+        return new (extendDeclare(this, properties))();
+        
     },
     
     pipe: function (processor) {
@@ -157,7 +183,7 @@ Process.prototype = {
                     "piped [processor] arguments must be Function or Process");
         }
         
-        return extendInstance(this, function () {
+        return new (extend(this, function () {
                 var me = this,
                     args = Array.prototype.slice.call(arguments, 0);
                     
@@ -166,7 +192,7 @@ Process.prototype = {
                             args[0] = data;
                             return processor.apply(me, args);
                         });
-            }, false);
+            }, false))();
 
     }
 };
