@@ -21,6 +21,9 @@ function get(name) {
         return Object.prototype.hasOwnProperty.call(list, name) ?
                         list[name] : void(0);
     }
+    else if (Object.prototype.toString.call(name) === '[object Object]') {
+        return (new (extend(Class, null, true))()).extend(name);
+    }
     else if (name instanceof Function) {
         return new (extend(Class, name, true))();
     }
