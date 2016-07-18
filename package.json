@@ -1,6 +1,6 @@
 {
   "name": "tee-back",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "Diko Tech Slave",
   "main": "index.js",
   "description": "pipe functions and resolve promises",
